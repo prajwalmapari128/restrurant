@@ -1,782 +1,969 @@
-import { useState, useRef, useEffect } from "react";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useTransform,
-} from "framer-motion";
+import React, { useState, useEffect } from 'react';
+import './App.css';
 
-/* ── Inject Tailwind CDN once ── */
-function useTailwind() {
-  useEffect(() => {
-    if (document.getElementById("tw-cdn")) return;
-    const s = document.createElement("script");
-    s.id = "tw-cdn";
-    s.src = "https://cdn.tailwindcss.com";
-    s.onload = () => {
-      window.tailwind?.config({
-        theme: {
-          extend: {
-            fontFamily: {
-              display: ["'Cormorant Garamond'", "serif"],
-              sans: ["'DM Sans'", "sans-serif"],
-            },
-            colors: {
-              gold: {
-                DEFAULT: "#C9A96E",
-                light: "#E8D5A3",
-                dark: "#9C7A3C",
-              },
-              charcoal: "#111010",
-              smoke: "#1C1B1A",
-              ash: "#2A2926",
-            },
-            letterSpacing: {
-              widest2: "0.3em",
-            },
-          },
-        },
-      });
-    };
-    document.head.appendChild(s);
-
-    const font = document.createElement("link");
-    font.rel = "stylesheet";
-    font.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap";
-    document.head.appendChild(font);
-  }, []);
-}
-
-/* ─── DATA ─── */
-const MENU_CATEGORIES = [
-  {
-    label: "Entrées",
-    items: [
-      {
-        name: "Foie Gras Torchon",
-        desc: "Sauternes gelée · brioche · Marcona almonds",
-        price: "42",
-        tag: "Chef's Signature",
-      },
-      {
-        name: "Hokkaido Scallop",
-        desc: "Dashi butter · ikura · microgreens",
-        price: "38",
-        tag: null,
-      },
-      {
-        name: "Black Truffle Velouté",
-        desc: "Jerusalem artichoke · crispy sage · hazelnut oil",
-        price: "34",
-        tag: "Seasonal",
-      },
-    ],
-  },
-  {
-    label: "Mains",
-    items: [
-      {
-        name: "Wagyu A5 Striploin",
-        desc: "Pomme purée · truffle jus · watercress",
-        price: "145",
-        tag: "Chef's Signature",
-      },
-      {
-        name: "Wild Sea Bass",
-        desc: "Yuzu beurre blanc · fennel · dashi broth",
-        price: "88",
-        tag: null,
-      },
-      {
-        name: "Rack of Lamb",
-        desc: "Pistachio crust · merguez jus · charred leek",
-        price: "96",
-        tag: "Seasonal",
-      },
-    ],
-  },
-  {
-    label: "Desserts",
-    items: [
-      {
-        name: "Valrhona Chocolate Sphere",
-        desc: "Caramel coulant · smoked salt · crème fraîche",
-        price: "22",
-        tag: null,
-      },
-      {
-        name: "Yuzu Tart",
-        desc: "Meringue · compressed lychee · vanilla",
-        price: "20",
-        tag: "Seasonal",
-      },
-      {
-        name: "Cheese Selection",
-        desc: "Affinage du jour · quince · walnut levain",
-        price: "28",
-        tag: null,
-      },
-    ],
-  },
-];
-
-const FEATURED = [
-  {
-    name: "Wagyu A5",
-    desc: "Truffle jus · pomme purée",
-    img: "https://images.unsplash.com/photo-1558030006-450675393462?w=800&q=80",
-  },
-  {
-    name: "Truffle Risotto",
-    desc: "Wild mushrooms · aged parmesan",
-    img: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&q=80",
-  },
-  {
-    name: "Wild Sea Bass",
-    desc: "Yuzu foam · dashi broth",
-    img: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&q=80",
-  },
-];
-
-const TEAM = [
-  {
-    name: "Éric Fontaine",
-    role: "Executive Chef",
-    bio: "Three Michelin stars. Trained under Ducasse and Robuchon.",
-    img: "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&q=80",
-  },
-  {
-    name: "Nadia Sato",
-    role: "Pastry Chef",
-    bio: "World Pastry Champion 2019. Known for architectural desserts.",
-    img: "https://images.unsplash.com/photo-1607631568010-a87245c0daf7?w=400&q=80",
-  },
-];
-
-/* ─── GOLD DIVIDER ─── */
-const GoldLine = () => (
-  <div className="flex items-center gap-4 my-8">
-    <div className="flex-1 h-px bg-gold/20" />
-    <div className="w-1.5 h-1.5 rotate-45 bg-gold/60" />
-    <div className="flex-1 h-px bg-gold/20" />
-  </div>
-);
-
-/* ─── MAGNETIC BUTTON ─── */
-function MagneticButton({ children, onClick, outlined = false }) {
-  const ref = useRef();
-  const move = (e) => {
-    const r = ref.current.getBoundingClientRect();
-    const x = (e.clientX - r.left - r.width / 2) * 0.25;
-    const y = (e.clientY - r.top - r.height / 2) * 0.25;
-    ref.current.style.transform = `translate(${x}px,${y}px)`;
-  };
-  const reset = () => (ref.current.style.transform = "translate(0,0)");
-  return (
-    <button
-      ref={ref}
-      onMouseMove={move}
-      onMouseLeave={reset}
-      onClick={onClick}
-      className={`
-        relative px-8 py-3 font-sans text-xs tracking-widest2 uppercase
-        transition-all duration-300 cursor-pointer
-        ${
-          outlined
-            ? "border border-gold/50 text-gold hover:bg-gold/10"
-            : "bg-gold text-charcoal hover:bg-gold-light"
-        }
-      `}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ─── REVEAL ─── */
-function Reveal({ children, delay = 0 }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 1, delay, ease: [0.16, 1, 0.3, 1] }}
-      viewport={{ once: true, margin: "-80px" }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* ─── NAVBAR ─── */
-function Navbar({ page, setPage }) {
+function App() {
+  const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [reservationStep, setReservationStep] = useState(1);
+
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 60);
-    window.addEventListener("scroll", h);
-    return () => window.removeEventListener("scroll", h);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  return (
-    <nav
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
-        scrolled ? "bg-charcoal/95 backdrop-blur-xl border-b border-gold/10" : ""
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-        {/* Logo */}
-        <button
-          onClick={() => setPage("Home")}
-          className="font-display text-2xl text-white tracking-[0.15em] italic"
-        >
-          Aurum
-        </button>
+  const scrollToSection = (section) => {
+    setActiveSection(section);
+    setMenuOpen(false);
+    const element = document.getElementById(section);
+    element?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-        {/* Nav links */}
-        <div className="hidden md:flex items-center gap-10">
-          {["Home", "Menu", "Team", "Contact"].map((n) => (
-            <button
-              key={n}
-              onClick={() => setPage(n)}
-              className={`font-sans text-xs tracking-widest uppercase transition-colors duration-200 ${
-                page === n ? "text-gold" : "text-white/50 hover:text-white/90"
-              }`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-
-        <MagneticButton onClick={() => setPage("Contact")}>
-          Reserve
-        </MagneticButton>
-      </div>
-    </nav>
-  );
-}
-
-/* ─── HERO ─── */
-function Hero({ setPage }) {
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 600], [0, 160]);
-  const opacity = useTransform(scrollY, [0, 400], [1, 0]);
-
-  return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Parallax image */}
-      <motion.div style={{ y }} className="absolute inset-0 scale-110">
-        <img
-          src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=85"
-          className="w-full h-full object-cover"
-          alt=""
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-charcoal/60 via-charcoal/40 to-charcoal" />
-      </motion.div>
-
-      {/* Content */}
-      <motion.div
-        style={{ opacity }}
-        className="relative z-10 text-center px-6 max-w-3xl mx-auto"
-      >
-        <motion.p
-          initial={{ opacity: 0, letterSpacing: "0.5em" }}
-          animate={{ opacity: 1, letterSpacing: "0.3em" }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
-          className="font-sans text-gold text-xs tracking-widest2 uppercase mb-8"
-        >
-          Established 2018 · Paris
-        </motion.p>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="font-display text-white text-6xl md:text-8xl leading-none mb-6"
-        >
-          Fine Dining<br />
-          <span className="italic text-gold">Reimagined</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.8 }}
-          className="font-sans text-white/50 text-sm tracking-wide mb-12 max-w-md mx-auto"
-        >
-          A three-Michelin-starred sanctuary where classical technique meets
-          avant-garde imagination.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.1 }}
-          className="flex gap-4 justify-center"
-        >
-          <MagneticButton onClick={() => setPage("Contact")}>
-            Reserve a Table
-          </MagneticButton>
-          <MagneticButton outlined onClick={() => setPage("Menu")}>
-            Explore Menu
-          </MagneticButton>
-        </motion.div>
-      </motion.div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        animate={{ y: [0, 8, 0] }}
-        transition={{ repeat: Infinity, duration: 2 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >
-        <div className="w-px h-12 bg-gradient-to-b from-transparent to-gold/50" />
-      </motion.div>
-    </section>
-  );
-}
-
-/* ─── FEATURED DISHES ─── */
-function FeaturedDishes() {
-  return (
-    <section className="py-32 max-w-7xl mx-auto px-6">
-      <Reveal>
-        <div className="text-center mb-16">
-          <p className="font-sans text-gold text-xs tracking-widest2 uppercase mb-4">
-            Culinary Artistry
-          </p>
-          <h2 className="font-display text-white text-5xl md:text-6xl italic">
-            Featured Dishes
-          </h2>
-        </div>
-      </Reveal>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        {FEATURED.map((d, i) => (
-          <Reveal key={i} delay={i * 0.15}>
-            <motion.div
-              whileHover={{ y: -8 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="group relative overflow-hidden cursor-pointer"
-            >
-              <div className="overflow-hidden aspect-[4/5]">
-                <motion.img
-                  whileHover={{ scale: 1.08 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                  src={d.img}
-                  className="w-full h-full object-cover"
-                  alt={d.name}
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <GoldLine />
-                <h3 className="font-display text-white text-2xl italic mb-1">
-                  {d.name}
-                </h3>
-                <p className="font-sans text-white/50 text-xs tracking-wider">
-                  {d.desc}
-                </p>
-              </div>
-            </motion.div>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ─── EXPERIENCE STRIP ─── */
-function ExperienceStrip() {
-  const stats = [
-    { value: "3", label: "Michelin Stars" },
-    { value: "12", label: "Course Tasting Menu" },
-    { value: "800+", label: "Wine Labels" },
-    { value: "20", label: "Years of Excellence" },
+  const menuItems = [
+    {
+      id: 1,
+      name: 'Coastal Prawn Curry',
+      price: 650,
+      category: 'Seafood',
+      desc: 'Fresh prawns simmered in coconut milk with coastal spices and curry leaves',
+      fullDesc: 'Succulent prawns cooked in a rich, aromatic coconut curry infused with ginger, garlic, green chilies, and fresh curry leaves. A taste of the Indian coastline.',
+      image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=80',
+      ingredients: ['Prawns', 'Coconut Milk', 'Curry Leaves', 'Ginger', 'Green Chili', 'Turmeric'],
+      prepTime: '35 mins',
+      veg: false,
+      popular: true
+    },
+    {
+      id: 2,
+      name: 'Truffle Mushroom Risotto',
+      price: 580,
+      category: 'Vegetarian',
+      desc: 'Creamy Arborio rice with wild mushrooms and black truffle oil',
+      fullDesc: 'Slow-cooked Italian Arborio rice with a medley of wild mushrooms, finished with Parmesan, butter, and aromatic black truffle oil.',
+      image: 'https://images.unsplash.com/photo-1633964913295-ceb43826e7c9?w=800&q=80',
+      ingredients: ['Arborio Rice', 'Wild Mushrooms', 'Truffle Oil', 'Parmesan', 'Butter', 'Thyme'],
+      prepTime: '40 mins',
+      veg: true,
+      popular: true
+    },
+    {
+      id: 3,
+      name: 'Mediterranean Sea Bass',
+      price: 720,
+      category: 'Seafood',
+      desc: 'Pan-seared sea bass with lemon caper butter and herb couscous',
+      fullDesc: 'Perfectly seared sea bass fillet with crispy skin, served over fluffy herb couscous and drizzled with tangy lemon caper butter sauce.',
+      image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800&q=80',
+      ingredients: ['Sea Bass', 'Couscous', 'Capers', 'Lemon', 'Butter', 'Fresh Herbs'],
+      prepTime: '30 mins',
+      veg: false,
+      popular: true
+    },
+    {
+      id: 4,
+      name: 'Lamb Shank Massaman',
+      price: 680,
+      category: 'Main Course',
+      desc: 'Slow-braised lamb shank in rich Massaman curry with potatoes',
+      fullDesc: 'Tender lamb shank braised for hours in a fragrant Massaman curry with coconut milk, potatoes, peanuts, and aromatic spices.',
+      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80',
+      ingredients: ['Lamb Shank', 'Coconut Milk', 'Potatoes', 'Peanuts', 'Massaman Paste', 'Cinnamon'],
+      prepTime: '3 hours',
+      veg: false,
+      popular: true
+    },
+    {
+      id: 5,
+      name: 'Burrata & Heirloom Tomato',
+      price: 420,
+      category: 'Appetizer',
+      desc: 'Creamy burrata with heirloom tomatoes, basil pesto and aged balsamic',
+      fullDesc: 'Fresh imported burrata cheese served with colorful heirloom tomatoes, house-made basil pesto, extra virgin olive oil, and 12-year aged balsamic.',
+      image: 'https://images.unsplash.com/photo-1532499016263-2b473a0d2c0d?w=800&q=80',
+      ingredients: ['Burrata', 'Heirloom Tomatoes', 'Basil Pesto', 'Balsamic', 'Olive Oil', 'Sea Salt'],
+      prepTime: '15 mins',
+      veg: true,
+      popular: true
+    },
+    {
+      id: 6,
+      name: 'Duck Confit',
+      price: 780,
+      category: 'Main Course',
+      desc: 'Crispy duck leg confit with orange gastrique and potato gratin',
+      fullDesc: 'Duck leg slow-cooked in its own fat until tender, then crisped to perfection. Served with creamy potato gratin and orange gastrique.',
+      image: 'https://images.unsplash.com/photo-1544739316-3e38a2ef0580?w=800&q=80',
+      ingredients: ['Duck Leg', 'Duck Fat', 'Orange', 'Potatoes', 'Thyme', 'Garlic'],
+      prepTime: '4 hours',
+      veg: false,
+      popular: false
+    },
+    {
+      id: 7,
+      name: 'Matcha Tiramisu',
+      price: 320,
+      category: 'Dessert',
+      desc: 'Japanese-Italian fusion with matcha mascarpone and sake-soaked sponge',
+      fullDesc: 'A unique twist on classic tiramisu featuring premium matcha green tea, creamy mascarpone, and delicate sponge soaked in sake.',
+      image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&q=80',
+      ingredients: ['Matcha', 'Mascarpone', 'Sponge Cake', 'Sake', 'White Chocolate', 'Cream'],
+      prepTime: '30 mins',
+      veg: true,
+      popular: true
+    },
+    {
+      id: 8,
+      name: 'Grilled Octopus',
+      price: 550,
+      category: 'Appetizer',
+      desc: 'Char-grilled octopus with smoked paprika, lemon and herb oil',
+      fullDesc: 'Tender octopus tentacles grilled over charcoal, seasoned with smoked paprika, fresh lemon, and a drizzle of herb-infused olive oil.',
+      image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=80',
+      ingredients: ['Octopus', 'Smoked Paprika', 'Lemon', 'Olive Oil', 'Oregano', 'Garlic'],
+      prepTime: '45 mins',
+      veg: false,
+      popular: true
+    },
+    {
+      id: 9,
+      name: 'Miso Black Cod',
+      price: 850,
+      category: 'Seafood',
+      desc: 'Miso-marinated black cod with pickled vegetables and steamed rice',
+      fullDesc: 'Buttery black cod marinated in sweet white miso for 48 hours, then broiled until caramelized. Served with house-pickled vegetables.',
+      image: 'https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=800&q=80',
+      ingredients: ['Black Cod', 'White Miso', 'Sake', 'Mirin', 'Pickled Vegetables', 'Rice'],
+      prepTime: '48 hours',
+      veg: false,
+      popular: true
+    },
+    {
+      id: 10,
+      name: 'Roasted Cauliflower Steak',
+      price: 380,
+      category: 'Vegetarian',
+      desc: 'Thick-cut cauliflower steak with romesco sauce and almond crumble',
+      fullDesc: 'Meaty cauliflower steak roasted until golden, served over smoky romesco sauce and topped with toasted almond and herb crumble.',
+      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80',
+      ingredients: ['Cauliflower', 'Romesco Sauce', 'Almonds', 'Herbs', 'Garlic', 'Olive Oil'],
+      prepTime: '35 mins',
+      veg: true,
+      popular: false
+    },
+    {
+      id: 11,
+      name: 'Dark Chocolate Fondant',
+      price: 340,
+      category: 'Dessert',
+      desc: 'Warm chocolate lava cake with vanilla bean ice cream',
+      fullDesc: 'Decadent dark chocolate cake with a molten center, served warm with Madagascar vanilla bean ice cream and fresh berries.',
+      image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80',
+      ingredients: ['Dark Chocolate', 'Butter', 'Eggs', 'Vanilla Ice Cream', 'Berries', 'Cocoa'],
+      prepTime: '25 mins',
+      veg: true,
+      popular: true
+    },
+    {
+      id: 12,
+      name: 'Wagyu Beef Tartare',
+      price: 680,
+      category: 'Appetizer',
+      desc: 'Hand-cut Australian wagyu with quail egg, capers and crostini',
+      fullDesc: 'Premium Australian wagyu beef hand-cut and seasoned with shallots, capers, cornichons, and topped with a quail egg yolk. Served with crispy crostini.',
+      image: 'https://images.unsplash.com/photo-1546039907-7fa05f864ad0?w=800&q=80',
+      ingredients: ['Wagyu Beef', 'Quail Egg', 'Capers', 'Shallots', 'Cornichons', 'Crostini'],
+      prepTime: '20 mins',
+      veg: false,
+      popular: false
+    }
   ];
-  return (
-    <section className="border-y border-gold/15 py-16">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-        {stats.map((s, i) => (
-          <Reveal key={i} delay={i * 0.1}>
-            <div className="text-center">
-              <p className="font-display text-gold text-5xl italic mb-2">
-                {s.value}
-              </p>
-              <p className="font-sans text-white/40 text-xs tracking-widest uppercase">
-                {s.label}
-              </p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
 
-/* ─── QUOTE ─── */
-function Quote() {
-  return (
-    <section className="py-32 px-6 text-center max-w-3xl mx-auto">
-      <Reveal>
-        <p className="font-display text-white/80 text-3xl md:text-4xl italic leading-relaxed">
-          "We do not simply cook — we compose experiences that linger long after
-          the last course."
-        </p>
-        <p className="font-sans text-gold text-xs tracking-widest2 uppercase mt-8">
-          — Éric Fontaine, Executive Chef
-        </p>
-      </Reveal>
-    </section>
-  );
-}
+  const features = [
+    {
+      icon: '🍷',
+      title: 'Curated Wine List',
+      desc: 'Over 200 labels from world-renowned vineyards, carefully selected by our sommelier',
+      details: 'Our wine cellar features exceptional vintages from Bordeaux, Tuscany, Napa Valley, and emerging wine regions. Each wine is chosen to complement our menu perfectly.'
+    },
+    {
+      icon: '👨‍🍳',
+      title: 'Michelin-Trained Chef',
+      desc: 'Chef Marco Laurent brings 20 years of experience from starred restaurants',
+      details: 'Trained in Paris and having worked at three Michelin-starred establishments across Europe, Chef Marco combines classical French techniques with global flavors.'
+    },
+    {
+      icon: '🌿',
+      title: 'Farm-to-Table',
+      desc: 'Seasonal ingredients sourced daily from local organic farms',
+      details: 'We partner with twelve local farms within 50 miles to ensure the freshest produce, heritage meats, and sustainable seafood arrive at your table daily.'
+    },
+    {
+      icon: '🎨',
+      title: 'Artisanal Approach',
+      desc: 'House-made pastas, breads, and cured meats crafted daily',
+      fullDesc: 'Our kitchen produces fresh pasta, sourdough bread, charcuterie, and ferments in-house using traditional methods and premium ingredients.',
+      details: 'Our kitchen produces fresh pasta, sourdough bread, charcuterie, and ferments in-house using traditional methods and premium ingredients.'
+    }
+  ];
 
-/* ─── HOME ─── */
-function Home({ setPage }) {
-  return (
-    <>
-      <Hero setPage={setPage} />
-      <FeaturedDishes />
-      <ExperienceStrip />
-      <Quote />
-    </>
-  );
-}
+  const gallery = [
+    {
+      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+      title: 'The Main Dining Room',
+      category: 'Interior',
+      description: 'Elegant ambiance with crystal chandeliers and velvet seating'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1428515613728-6b4607e44363?w=800&q=80',
+      title: 'Chef\'s Table Experience',
+      category: 'Experience',
+      description: 'Intimate 8-seat counter overlooking the open kitchen'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
+      title: 'Wine Cellar',
+      category: 'Cellar',
+      description: 'Temperature-controlled cellar housing rare vintages'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=800&q=80',
+      title: 'Private Dining Room',
+      category: 'Private',
+      description: 'Exclusive space for up to 20 guests with dedicated service'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=80',
+      title: 'Garden Terrace',
+      category: 'Outdoor',
+      description: 'Al fresco dining surrounded by olive trees and herbs'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1484659619202-ce3889a4c8b5?w=800&q=80',
+      title: 'The Bar',
+      category: 'Bar',
+      description: 'Craft cocktails and rare spirits in an intimate setting'
+    }
+  ];
 
-/* ─── MENU PAGE ─── */
-function MenuPage() {
-  const [active, setActive] = useState(0);
-  return (
-    <div className="pt-32 pb-24 max-w-4xl mx-auto px-6">
-      <Reveal>
-        <div className="text-center mb-16">
-          <p className="font-sans text-gold text-xs tracking-widest2 uppercase mb-4">
-            À La Carte
-          </p>
-          <h2 className="font-display text-white text-5xl md:text-6xl italic">
-            Our Menu
-          </h2>
-        </div>
-      </Reveal>
+  const categories = ['All', 'Appetizer', 'Main Course', 'Seafood', 'Vegetarian', 'Dessert'];
 
-      {/* Category Tabs */}
-      <div className="flex justify-center gap-0 mb-16 border border-gold/20">
-        {MENU_CATEGORIES.map((c, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={`flex-1 py-3 font-sans text-xs tracking-widest uppercase transition-all duration-300 ${
-              active === i
-                ? "bg-gold text-charcoal"
-                : "text-white/40 hover:text-white/70"
-            }`}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
+  const filteredMenu = selectedCategory === 'All' 
+    ? menuItems 
+    : menuItems.filter(item => item.category === selectedCategory);
 
-      {/* Items */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={active}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-0"
-        >
-          {MENU_CATEGORIES[active].items.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="group py-7 border-b border-white/8 flex items-start justify-between gap-6 hover:border-gold/30 transition-colors duration-300"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="font-display text-white text-xl italic">
-                    {item.name}
-                  </h3>
-                  {item.tag && (
-                    <span className="font-sans text-[10px] text-gold border border-gold/30 px-2 py-0.5 tracking-wider uppercase">
-                      {item.tag}
-                    </span>
-                  )}
-                </div>
-                <p className="font-sans text-white/40 text-xs tracking-wide">
-                  {item.desc}
-                </p>
-              </div>
-              <p className="font-display text-gold text-xl mt-0.5">
-                €{item.price}
-              </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </AnimatePresence>
+  const addToCart = (item) => {
+    const existingItem = cart.find(cartItem => cartItem.id === item.id);
+    if (existingItem) {
+      setCart(cart.map(cartItem =>
+        cartItem.id === item.id
+          ? { ...cartItem, quantity: cartItem.quantity + 1 }
+          : cartItem
+      ));
+    } else {
+      setCart([...cart, { ...item, quantity: 1 }]);
+    }
+  };
 
-      <Reveal>
-        <p className="font-sans text-white/25 text-xs text-center mt-12 tracking-wide">
-          All prices include taxes. Tasting menu available for the full table only.
-        </p>
-      </Reveal>
-    </div>
-  );
-}
+  const updateQuantity = (id, change) => {
+    setCart(cart.map(item =>
+      item.id === id
+        ? { ...item, quantity: Math.max(0, item.quantity + change) }
+        : item
+    ).filter(item => item.quantity > 0));
+  };
 
-/* ─── TEAM PAGE ─── */
-function TeamPage() {
-  return (
-    <div className="pt-32 pb-24 max-w-5xl mx-auto px-6">
-      <Reveal>
-        <div className="text-center mb-20">
-          <p className="font-sans text-gold text-xs tracking-widest2 uppercase mb-4">
-            The Artists
-          </p>
-          <h2 className="font-display text-white text-5xl md:text-6xl italic">
-            Our Team
-          </h2>
-        </div>
-      </Reveal>
+  const getTotalPrice = () => {
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
 
-      <div className="grid md:grid-cols-2 gap-12">
-        {TEAM.map((t, i) => (
-          <Reveal key={i} delay={i * 0.2}>
-            <motion.div
-              whileHover={{ y: -6 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="group"
-            >
-              <div className="overflow-hidden mb-6 aspect-[3/2]">
-                <motion.img
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.6 }}
-                  src={t.img}
-                  className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-700"
-                  alt={t.name}
-                />
-              </div>
-              <GoldLine />
-              <h3 className="font-display text-white text-2xl italic mb-1">
-                {t.name}
-              </h3>
-              <p className="font-sans text-gold text-xs tracking-widest uppercase mb-3">
-                {t.role}
-              </p>
-              <p className="font-sans text-white/45 text-sm leading-relaxed">
-                {t.bio}
-              </p>
-            </motion.div>
-          </Reveal>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── CONTACT PAGE ─── */
-function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", date: "", guests: "2", note: "" });
-  const [sent, setSent] = useState(false);
-
-  const handleSubmit = () => {
-    if (!form.name || !form.email || !form.date) return;
-    setSent(true);
+  const placeOrder = () => {
+    setOrderPlaced(true);
+    setTimeout(() => {
+      setOrderPlaced(false);
+      setCart([]);
+      setCartOpen(false);
+    }, 4000);
   };
 
   return (
-    <div className="pt-32 pb-24 max-w-2xl mx-auto px-6">
-      <Reveal>
-        <div className="text-center mb-16">
-          <p className="font-sans text-gold text-xs tracking-widest2 uppercase mb-4">
-            Join Us
-          </p>
-          <h2 className="font-display text-white text-5xl md:text-6xl italic">
-            Reserve a Table
-          </h2>
-        </div>
-      </Reveal>
-
-      <AnimatePresence mode="wait">
-        {sent ? (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20"
-          >
-            <div className="w-16 h-16 border border-gold/40 rotate-45 mx-auto mb-8 flex items-center justify-center">
-              <div className="-rotate-45 text-gold text-2xl">✓</div>
-            </div>
-            <h3 className="font-display text-white text-3xl italic mb-4">
-              Reservation Received
-            </h3>
-            <p className="font-sans text-white/45 text-sm">
-              We will confirm your table within 24 hours.
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div key="form" initial={{ opacity: 1 }} className="space-y-6">
-            {[
-              { label: "Full Name", key: "name", type: "text", placeholder: "Jean-Pierre Morel" },
-              { label: "Email Address", key: "email", type: "email", placeholder: "jp.morel@email.com" },
-              { label: "Preferred Date", key: "date", type: "date", placeholder: "" },
-            ].map((f) => (
-              <Reveal key={f.key}>
-                <div>
-                  <label className="block font-sans text-xs text-white/40 tracking-widest uppercase mb-2">
-                    {f.label}
-                  </label>
-                  <input
-                    type={f.type}
-                    placeholder={f.placeholder}
-                    value={form[f.key]}
-                    onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                    className="w-full bg-transparent border-b border-white/15 hover:border-gold/40 focus:border-gold text-white font-sans text-sm py-3 outline-none transition-colors duration-300 placeholder-white/20"
-                  />
-                </div>
-              </Reveal>
+    <div className="app">
+      {/* Navigation */}
+      <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+        <div className="nav-container">
+          <div className="logo" onClick={() => scrollToSection('home')}>
+            <span className="logo-text">NOBLE<span className="logo-accent">TABLE</span></span>
+          </div>
+          
+          <div className={`nav-menu ${menuOpen ? 'active' : ''}`}>
+            {['home', 'about', 'menu', 'features', 'gallery', 'reservations', 'help'].map((item) => (
+              <button
+                key={item}
+                className={`nav-link ${activeSection === item ? 'active' : ''}`}
+                onClick={() => scrollToSection(item)}
+              >
+                {item.charAt(0).toUpperCase() + item.slice(1)}
+              </button>
             ))}
+          </div>
 
-            <Reveal>
-              <div>
-                <label className="block font-sans text-xs text-white/40 tracking-widest uppercase mb-2">
-                  Number of Guests
-                </label>
-                <select
-                  value={form.guests}
-                  onChange={(e) => setForm({ ...form, guests: e.target.value })}
-                  className="w-full bg-charcoal border-b border-white/15 hover:border-gold/40 focus:border-gold text-white font-sans text-sm py-3 outline-none transition-colors duration-300"
-                >
-                  {[1,2,3,4,5,6,7,8].map((n) => (
-                    <option key={n} value={n}>{n} {n === 1 ? "Guest" : "Guests"}</option>
-                  ))}
-                </select>
+          <div className="nav-actions">
+            <button className="cart-btn" onClick={() => setCartOpen(true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {cart.length > 0 && <span className="cart-count">{cart.length}</span>}
+            </button>
+            <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section id="home" className="hero">
+        <div className="hero-slideshow">
+          <div className="hero-slide slide-1 active"></div>
+          <div className="hero-slide slide-2"></div>
+          <div className="hero-slide slide-3"></div>
+        </div>
+        <div className="hero-overlay"></div>
+        
+        <div className="hero-content">
+          <div className="hero-badge">
+            <span>★ Michelin Recommended 2024 ★</span>
+          </div>
+          
+          <h1 className="hero-title">
+            <span className="title-line">Where Every Meal</span>
+            <span className="title-line">Becomes A</span>
+            <span className="title-line accent">Masterpiece</span>
+          </h1>
+          
+          <p className="hero-subtitle">Fine Dining Reimagined</p>
+          
+          <p className="hero-description">
+            Experience culinary artistry at Noble Table. Our Michelin-trained chefs craft 
+            exceptional dishes using the finest seasonal ingredients, served in an atmosphere 
+            of understated elegance.
+          </p>
+          
+          <div className="hero-buttons">
+            <button className="btn btn-primary" onClick={() => scrollToSection('reservations')}>
+              <span>Reserve a Table</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </button>
+            <button className="btn btn-outline" onClick={() => scrollToSection('menu')}>
+              <span>View Menu</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="hero-stats">
+            <div className="stat-item">
+              <span className="stat-number">12</span>
+              <span className="stat-label">Years of Excellence</span>
+            </div>
+            <div className="stat-divider"></div>
+            <div className="stat-item">
+              <span className="stat-number">200+</span>
+              <span className="stat-label">Wine Selection</span>
+            </div>
+            <div className="stat-divider"></div>
+            <div className="stat-item">
+              <span className="stat-number">5★</span>
+              <span className="stat-label">500+ Reviews</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-scroll-indicator">
+          <span>Scroll to discover</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="about">
+        <div className="section-container">
+          <div className="about-grid">
+            <div className="about-content-left">
+              <span className="section-subtitle">Our Philosophy</span>
+              <h2 className="section-title">Crafting <span className="text-gradient">Exceptional</span> Dining Experiences</h2>
+              
+              <div className="about-quote">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="quote-icon">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                </svg>
+                <p>Great food is not just about taste—it's about creating moments that linger in memory long after the last bite.</p>
+                <span className="quote-author">— Chef Marco Laurent</span>
               </div>
-            </Reveal>
+              
+              <p className="about-text">
+                Founded in 2012, Noble Table has established itself as a beacon of culinary excellence. 
+                Our philosophy is simple: source the finest ingredients, honor traditional techniques, 
+                and present each dish as a work of art. Every plate tells a story of passion, precision, 
+                and creativity.
+              </p>
+              
+              <p className="about-text">
+                From our house-made pastas to our carefully curated wine cellar, every detail is 
+                considered. We believe dining should be an experience that engages all the senses—a 
+                celebration of food, wine, and connection.
+              </p>
 
-            <Reveal>
-              <div>
-                <label className="block font-sans text-xs text-white/40 tracking-widest uppercase mb-2">
-                  Special Requests
-                </label>
-                <textarea
-                  placeholder="Dietary requirements, special occasions…"
-                  value={form.note}
-                  rows={3}
-                  onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  className="w-full bg-transparent border-b border-white/15 hover:border-gold/40 focus:border-gold text-white font-sans text-sm py-3 outline-none transition-colors duration-300 resize-none placeholder-white/20"
-                />
+              <div className="about-features">
+                <div className="about-feature">
+                  <span className="feature-icon">🍝</span>
+                  <div>
+                    <h4>Fresh Pasta Daily</h4>
+                    <p>Handmade each morning using organic flour and farm eggs</p>
+                  </div>
+                </div>
+                <div className="about-feature">
+                  <span className="feature-icon">🥩</span>
+                  <div>
+                    <h4>Dry-Aged Beef</h4>
+                    <p>In-house aging program for premium cuts</p>
+                  </div>
+                </div>
+                <div className="about-feature">
+                  <span className="feature-icon">🍷</span>
+                  <div>
+                    <h4>Sommelier Selection</h4>
+                    <p>Expertly paired wines for every course</p>
+                  </div>
+                </div>
               </div>
-            </Reveal>
+            </div>
 
-            <Reveal delay={0.1}>
-              <div className="pt-4">
-                <MagneticButton onClick={handleSubmit}>
-                  Confirm Reservation
-                </MagneticButton>
+            <div className="about-content-right">
+              <div className="about-image-main">
+                <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&q=80" alt="Chef at work" />
+                <div className="image-caption">Chef Marco Laurent in the kitchen</div>
               </div>
-            </Reveal>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="about-image-grid">
+                <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80" alt="Restaurant interior" />
+                <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&q=80" alt="Plated dish" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Info strip */}
-      <GoldLine />
-      <Reveal>
-        <div className="grid grid-cols-3 gap-4 text-center">
+      {/* Menu Section */}
+      <section id="menu" className="menu">
+        <div className="section-container">
+          <div className="section-header">
+            <span className="section-subtitle">Our Culinary Offerings</span>
+            <h2 className="section-title">The <span className="text-gradient">Menu</span></h2>
+            <p className="section-description">Seasonal ingredients, masterfully prepared</p>
+          </div>
+
+          <div className="menu-filters">
+            {categories.map((category) => (
+              <button
+                key={category}
+                className={`filter-btn ${selectedCategory === category ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+          <div className="menu-grid-alt">
+            {filteredMenu.map((item) => (
+              <div className="menu-card-alt" key={item.id} onClick={() => setSelectedProduct(item)}>
+                <div className="menu-card-image">
+                  <img src={item.image} alt={item.name} loading="lazy" />
+                  {item.popular && <span className="menu-badge">Chef's Pick</span>}
+                </div>
+                <div className="menu-card-content">
+                  <div className="menu-card-header">
+                    <h3>{item.name}</h3>
+                    <span className="menu-price">₹{item.price}</span>
+                  </div>
+                  <p className="menu-card-desc">{item.desc}</p>
+                  <div className="menu-card-footer">
+                    <span className="menu-category-tag">{item.category}</span>
+                    <button className="menu-add-btn" onClick={(e) => { e.stopPropagation(); addToCart(item); }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="features">
+        <div className="section-container">
+          <div className="section-header">
+            <span className="section-subtitle">What Sets Us Apart</span>
+            <h2 className="section-title">The Noble <span className="text-gradient">Difference</span></h2>
+          </div>
+
+          <div className="features-grid">
+            {features.map((feature, index) => (
+              <div className="feature-card" key={index}>
+                <div className="feature-icon-wrapper">
+                  <span className="feature-emoji">{feature.icon}</span>
+                </div>
+                <h3>{feature.title}</h3>
+                <p>{feature.desc}</p>
+                <p className="feature-details">{feature.details}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Section */}
+      <section id="gallery" className="gallery">
+        <div className="section-container">
+          <div className="section-header">
+            <span className="section-subtitle">Our Space</span>
+            <h2 className="section-title">Restaurant <span className="text-gradient">Gallery</span></h2>
+            <p className="section-description">Step inside Noble Table</p>
+          </div>
+
+          <div className="gallery-masonry">
+            {gallery.map((item, index) => (
+              <div className={`gallery-item-masonry item-${index + 1}`} key={index}>
+                <img src={item.image} alt={item.title} loading="lazy" />
+                <div className="gallery-item-overlay">
+                  <span className="gallery-item-category">{item.category}</span>
+                  <h4>{item.title}</h4>
+                  <p>{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Reservations Section */}
+      <section id="reservations" className="reservations">
+        <div className="section-container">
+          <div className="reservations-wrapper">
+            <div className="reservations-info">
+              <span className="section-subtitle">Book Your Experience</span>
+              <h2 className="section-title">Reserve <span className="text-gradient">Your Table</span></h2>
+              
+              <p className="reservations-intro">
+                We recommend booking at least 2-3 days in advance for weekend dining. 
+                For parties of 6 or more, please contact us directly.
+              </p>
+
+              <div className="info-cards">
+                <div className="info-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4>Hours</h4>
+                    <p>Mon-Thu: 5pm - 10pm</p>
+                    <p>Fri-Sat: 5pm - 11pm</p>
+                    <p>Sun: 4pm - 9pm</p>
+                  </div>
+                </div>
+                
+                <div className="info-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <div>
+                    <h4>Contact</h4>
+                    <p>+1 (212) 555-0198</p>
+                    <p>reservations@nobletable.com</p>
+                  </div>
+                </div>
+
+                <div className="info-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <div>
+                    <h4>Location</h4>
+                    <p>123 Gourmet Avenue</p>
+                    <p>SoHo, New York, NY 10012</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="reservations-form-wrapper">
+              <div className="reservation-progress">
+                <div className={`progress-step ${reservationStep >= 1 ? 'active' : ''}`}>
+                  <span className="step-number">1</span>
+                  <span className="step-label">Details</span>
+                </div>
+                <div className={`progress-step ${reservationStep >= 2 ? 'active' : ''}`}>
+                  <span className="step-number">2</span>
+                  <span className="step-label">Confirm</span>
+                </div>
+              </div>
+
+              <form className="reservations-form" onSubmit={(e) => { e.preventDefault(); alert('Reservation request received! We will contact you shortly to confirm.'); }}>
+                <div className="form-row-dual">
+                  <div className="form-group">
+                    <input type="text" placeholder="Full Name" required className="form-input" />
+                  </div>
+                  <div className="form-group">
+                    <input type="email" placeholder="Email Address" required className="form-input" />
+                  </div>
+                </div>
+
+                <div className="form-row-dual">
+                  <div className="form-group">
+                    <input type="tel" placeholder="Phone Number" required className="form-input" />
+                  </div>
+                  <div className="form-group">
+                    <select required className="form-input form-select">
+                      <option value="">Number of Guests</option>
+                      <option value="1">1 Guest</option>
+                      <option value="2">2 Guests</option>
+                      <option value="3">3 Guests</option>
+                      <option value="4">4 Guests</option>
+                      <option value="5">5 Guests</option>
+                      <option value="6+">6+ Guests</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row-dual">
+                  <div className="form-group">
+                    <input type="date" required className="form-input" />
+                  </div>
+                  <div className="form-group">
+                    <select required className="form-input form-select">
+                      <option value="">Select Time</option>
+                      <option value="17:00">5:00 PM</option>
+                      <option value="17:30">5:30 PM</option>
+                      <option value="18:00">6:00 PM</option>
+                      <option value="18:30">6:30 PM</option>
+                      <option value="19:00">7:00 PM</option>
+                      <option value="19:30">7:30 PM</option>
+                      <option value="20:00">8:00 PM</option>
+                      <option value="20:30">8:30 PM</option>
+                      <option value="21:00">9:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <textarea placeholder="Special Requests, Dietary Restrictions, or Occasion" rows="3" className="form-input"></textarea>
+                </div>
+
+                <button type="submit" className="btn btn-primary btn-full">
+                  <span>Request Reservation</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Help Section */}
+      <section id="help" className="section-container help-section">
+        <div className="section-header">
+          <span className="section-subtitle">Any Questions?</span>
+          <h2 className="section-title">Help & FAQs</h2>
+          <p className="section-description">Find answers to common questions about our restaurant, menu, and services</p>
+        </div>
+
+        <div className="faq-container">
           {[
-            { label: "Address", val: "14 Rue de la Paix, Paris" },
-            { label: "Hours", val: "Tue – Sat · 19:00 – 23:00" },
-            { label: "Phone", val: "+33 1 42 00 00 00" },
-          ].map((i) => (
-            <div key={i.label}>
-              <p className="font-sans text-gold text-xs tracking-widest uppercase mb-1">
-                {i.label}
-              </p>
-              <p className="font-sans text-white/45 text-xs leading-relaxed">
-                {i.val}
-              </p>
+            {
+              q: "What are your operating hours?",
+              a: "We're open Tuesday to Sunday from 12:00 PM to 11:00 PM. Closed on Mondays. We recommend calling ahead for peak hours."
+            },
+            {
+              q: "How do I make a reservation?",
+              a: "You can book a table through our Reservations section above, or call us at +91-XXXXX-XXXXX. We accept reservations up to 2 months in advance."
+            },
+            {
+              q: "Do you accommodate dietary restrictions?",
+              a: "Absolutely! We cater to vegan, vegetarian, gluten-free, and allergy requirements. Please let us know when booking so our team can prepare accordingly."
+            },
+            {
+              q: "What's your dress code?",
+              a: "Smart casual to formal attire is recommended. We appreciate guests who dress appropriately for a fine dining experience."
+            },
+            {
+              q: "Do you have a wine pairing service?",
+              a: "Yes! Our sommelier can suggest perfect wine pairings for your meal. We have an extensive wine collection featuring labels from around the world."
+            },
+            {
+              q: "Can we host private events?",
+              a: "Certainly! Contact us for information about private dining events, business functions, and celebrations."
+            },
+            {
+              q: "What payment methods do you accept?",
+              a: "We accept all major credit cards (Visa, Mastercard, American Express), digital payments (PayPal, Apple Pay), and cash."
+            },
+            {
+              q: "Is there a dress code for the restaurant?",
+              a: "Smart casual to formal attire is preferred. We maintain an elegant ambiance throughout the restaurant."
+            },
+            {
+              q: "Do you offer takeout or delivery?",
+              a: "We primarily focus on dine-in experiences. For special requests, please contact us directly at the reservation number."
+            },
+            {
+              q: "Can I cancel or modify my reservation?",
+              a: "Yes, you can modify up to 24 hours before your reservation. Cancellations within 24 hours may have a cancellation fee."
+            }
+          ].map((faq, idx) => (
+            <div key={idx} className="faq-item">
+              <button 
+                className="faq-question"
+              >
+                <span>{faq.q}</span>
+                <span className="faq-icon">+</span>
+              </button>
+              <div className="faq-answer">
+                <p>{faq.a}</p>
+              </div>
             </div>
           ))}
         </div>
-      </Reveal>
-    </div>
-  );
-}
 
-/* ─── FOOTER ─── */
-function Footer({ setPage }) {
-  return (
-    <footer className="border-t border-gold/10 py-12 px-6">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-        <p className="font-display text-white/30 text-xl italic">Aurum</p>
-        <div className="flex gap-8">
-          {["Home", "Menu", "Team", "Contact"].map((n) => (
-            <button
-              key={n}
-              onClick={() => setPage(n)}
-              className="font-sans text-white/25 text-xs tracking-widest uppercase hover:text-gold transition-colors"
-            >
-              {n}
-            </button>
-          ))}
+        <div className="faq-contact">
+          <h3>Still have questions?</h3>
+          <p>Contact our team directly for personalized assistance</p>
+          <div className="faq-contact-info">
+            <div className="contact-box">
+              <span className="box-label">Email</span>
+              <span className="box-value">info@nobletable.com</span>
+            </div>
+            <div className="contact-box">
+              <span className="box-label">Phone</span>
+              <span className="box-value">+91-XXXXX-XXXXX</span>
+            </div>
+            <div className="contact-box">
+              <span className="box-label">Hours</span>
+              <span className="box-value">Tue-Sun, 12-11 PM</span>
+            </div>
+          </div>
         </div>
-        <p className="font-sans text-white/20 text-xs">
-          © {new Date().getFullYear()} Aurum · All rights reserved
-        </p>
-      </div>
-    </footer>
-  );
-}
+      </section>
 
-/* ─── APP ─── */
-export default function App() {
-  useTailwind();
-  const [page, setPage] = useState("Home");
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-container">
+          <div className="footer-main">
+            <div className="footer-brand">
+              <h3 className="footer-logo">NOBLE<span>TABLE</span></h3>
+              <p className="footer-tagline">Culinary excellence since 2012</p>
+              <div className="footer-social">
+                <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"/></svg></a>
+                <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+                <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg></a>
+              </div>
+            </div>
 
-  const pages = {
-    Home: <Home setPage={setPage} />,
-    Menu: <MenuPage />,
-    Team: <TeamPage />,
-    Contact: <ContactPage />,
-  };
+            <div className="footer-links-group">
+              <div className="footer-links">
+                <h4>Explore</h4>
+                <a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection('home'); }}>Home</a>
+                <a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection('about'); }}>About</a>
+                <a href="#menu" onClick={(e) => { e.preventDefault(); scrollToSection('menu'); }}>Menu</a>
+                <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}>Features</a>
+                <a href="#gallery" onClick={(e) => { e.preventDefault(); scrollToSection('gallery'); }}>Gallery</a>
+              </div>
 
-  // Scroll to top on page change
-  useEffect(() => window.scrollTo({ top: 0, behavior: "smooth" }), [page]);
+              <div className="footer-links">
+                <h4>Information</h4>
+                <a href="#reservations" onClick={(e) => { e.preventDefault(); scrollToSection('reservations'); }}>Reservations</a>
+                <a href="#help" onClick={(e) => { e.preventDefault(); scrollToSection('help'); }}>Help & FAQs</a>
+                <a href="#">Private Events</a>
+                <a href="#">Gift Cards</a>
+                <a href="#">Careers</a>
+                <a href="#">Press</a>
+              </div>
 
-  return (
-    <div
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
-      className="bg-charcoal min-h-screen text-white overflow-x-hidden"
-    >
-      {/* Ambient glow */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <div
-          className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-[0.04]"
-          style={{ background: "#C9A96E", filter: "blur(160px)" }}
-        />
-        <div
-          className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-[0.03]"
-          style={{ background: "#C9A96E", filter: "blur(180px)" }}
-        />
-      </div>
+              <div className="footer-newsletter">
+                <h4>Newsletter</h4>
+                <p>Subscribe for seasonal menus and exclusive events</p>
+                <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
+                  <input type="email" placeholder="Your email" />
+                  <button type="submit">→</button>
+                </form>
+              </div>
+            </div>
+          </div>
 
-      <Navbar page={page} setPage={setPage} />
+          <div className="footer-bottom">
+            <p>&copy; 2024 Noble Table. All rights reserved.</p>
+            <div className="footer-legal">
+              <a href="#">Privacy Policy</a>
+              <span>|</span>
+              <a href="#">Terms of Service</a>
+              <span>|</span>
+              <a href="#">Accessibility</a>
+            </div>
+          </div>
+        </div>
+      </footer>
 
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={page}
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -16 }}
-          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {pages[page]}
-        </motion.main>
-      </AnimatePresence>
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedProduct(null)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="modal-grid">
+              <div className="modal-image-section">
+                <img src={selectedProduct.image} alt={selectedProduct.name} />
+              </div>
+              
+              <div className="modal-details-section">
+                <div className="modal-header">
+                  <h2>{selectedProduct.name}</h2>
+                  <span className="modal-category">{selectedProduct.category}</span>
+                  <span className="modal-price">₹{selectedProduct.price}</span>
+                </div>
+                
+                <p className="modal-description">{selectedProduct.fullDesc}</p>
+                
+                <div className="modal-meta">
+                  <div className="meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Prep: {selectedProduct.prepTime}</span>
+                  </div>
+                </div>
+                
+                <div className="modal-ingredients">
+                  <h4>Ingredients</h4>
+                  <div className="ingredients-cloud">
+                    {selectedProduct.ingredients.map((ingredient, i) => (
+                      <span key={i} className="ingredient-tag">{ingredient}</span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="modal-actions">
+                  <button className="btn btn-secondary" onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}>
+                    Add to Order
+                  </button>
+                  <button className="btn btn-primary" onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); placeOrder(); }}>
+                    Order Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <Footer setPage={setPage} />
+      {/* Cart Sidebar */}
+      {cartOpen && (
+        <>
+          <div className="cart-overlay" onClick={() => setCartOpen(false)}></div>
+          <div className="cart-sidebar">
+            <div className="cart-header">
+              <h3>Your Order</h3>
+              <button className="cart-close" onClick={() => setCartOpen(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="cart-items">
+              {cart.length === 0 ? (
+                <div className="cart-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <p>Your cart is empty</p>
+                  <button className="btn btn-primary" onClick={() => { setCartOpen(false); scrollToSection('menu'); }}>
+                    Browse Menu
+                  </button>
+                </div>
+              ) : (
+                cart.map((item) => (
+                  <div className="cart-item" key={item.id}>
+                    <div className="cart-item-info">
+                      <h4>{item.name}</h4>
+                      <span className="cart-item-price">₹{item.price}</span>
+                    </div>
+                    <div className="cart-item-controls">
+                      <button onClick={() => updateQuantity(item.id, -1)}>−</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.id, 1)}>+</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            {cart.length > 0 && (
+              <div className="cart-footer">
+                <div className="cart-total">
+                  <span>Total</span>
+                  <span>₹{getTotalPrice()}</span>
+                </div>
+                <button className="btn btn-primary btn-full" onClick={placeOrder}>
+                  Place Order
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Order Success Modal */}
+      {orderPlaced && (
+        <div className="order-success-overlay">
+          <div className="order-success-modal">
+            <div className="success-icon">
+              <svg viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="25" fill="none" stroke="currentColor" strokeWidth="2"/>
+                <path fill="none" stroke="currentColor" strokeWidth="3" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+              </svg>
+            </div>
+            <h2>Order Confirmed!</h2>
+            <p>Thank you for choosing Noble Table.</p>
+            <p className="order-message">Your culinary experience awaits.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+export default App;
